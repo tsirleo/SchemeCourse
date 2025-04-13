@@ -1,0 +1,144 @@
+(define (filter1 f lst)
+  (reverse (foldl (lambda (x y) (if (f x) (cons x y) y)) null lst)))
+
+(define (filter2 f lst)
+  (foldr (lambda (x y) (if (f x) (cons x y) y)) null lst))
+
+-----------------------------------------------------------------------------------------------
+
+(define (taskII t s)
+  (cond
+    ((equal? t 1) s)
+    ((equal? t 0) 0)
+    (else
+      (let ((s/4 (/ s 4)))
+        (+ (taskII (vector-ref t 0) s/4)
+          (taskII (vector-ref t 1) s/4)
+          (taskII (vector-ref t 2) s/4)
+          (taskII (vector-ref t 3) s/4)
+        )
+      )
+    )
+  )
+)
+
+-----------------------------------------------------------------------------------------------
+
+(define (taskIII-cps t s cc)
+  (cond
+    ((equal? t 1) (cc s))
+    ((equal? t 0) (cc 0))
+    (else
+      (let ((s/4 (/ s 4)))
+        (taskIII-cps (vector-ref t 0) s/4
+          (lambda (area0)
+            (taskIII-cps (vector-ref t 1) s/4
+              (lambda (area1)
+                (taskIII-cps (vector-ref t 2) s/4
+                  (lambda (area2)
+                    (taskIII-cps (vector-ref t 3) s/4
+                      (lambda (area3)
+                        (cc (+ area0 area1 area2 area3))
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)
+
+-----------------------------------------------------------------------------------------------
+
+(define (factorial n)
+  (if (<= n 1)
+    1
+    (* n (factorial (- n 1)))
+  )
+)
+
+;; Создание списка первых факториалов
+(define factorials
+  (let loop ((n 0) (acc '()))
+    (let ((fact (factorial n)))
+      (if (> fact 1000000)
+        (reverse acc)
+        (loop (+ n 1) (cons fact acc))
+      )
+    )
+  )
+)
+
+;; Порождающая функция потока nonfactorials
+(define (make-nonfactorials)
+  (let ((current 1))
+    (define (next)
+      (let loop ()
+        (set! current (+ current 1))
+        (if (member current factorials)
+          (loop)
+          current
+        )
+      )
+    )
+    next
+  )
+)
+
+(define nonfactorials
+  (let ((gen (make-nonfactorials)))
+    (define (stream)
+      (stream-cons (gen) (stream)))
+    (stream)
+  )
+)
+
+-----------------------------------------------------------------------------------------------
+
+(define (is-prime? n)
+  (cond
+    ((< n 2) #f)
+    (else
+      (let loop ((i 2))
+        (cond
+          ((> (* i i) n) #t)
+          ((= (remainder n i) 0) #f)
+          (else (loop (+ i 1)))
+        )
+      )
+    )
+  )
+)
+
+(define taskV
+  (let ((cache (make-hash)))
+    (lambda (n)
+      (cond
+        ((< n 1) (error "n должно быть положительным"))
+        ((hash-ref cache n #f) => identity)
+        (else
+          (let loop ((k 2) (count 0) (primes '()))
+            (if (>= count n)
+              (let ((result (car primes)))
+               (hash-set! cache n result)
+               result
+              )
+              (let ((candidate (sub1 (expt 2 k))))
+                (if (is-prime? candidate)
+                  (loop (+ k 1) (+ count 1) (cons candidate primes))
+                  (loop (+ k 1) count primes)
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)
+
+
