@@ -1,0 +1,116 @@
+I.  
+(define (chunk-by fun lst)
+  (foldr
+    (lambda (x acc)
+      (if (and (pair? acc)
+               (fun x (caar acc)))
+          (cons (cons x (car acc)) (cdr acc))
+          (cons (list x) acc)))
+    '()
+    lst))
+
+
+II. 
+(define (fun-ii n)
+  (let ((memo (make-vector (+ n 1))))
+    (vector-set! memo 0 0)
+    (when (>= n 1)
+      (vector-set! memo 1 1))
+    (let loop ((i 2))
+      (unless (> i n)
+        (vector-set! memo i (+ (vector-ref memo (- i 1)) (vector-ref memo (- i 2))))
+        (loop (+ i 1))))
+    (let build-tree ((k n))
+      (if (<= k 1)
+          (vector (vector-ref memo k) (vector) (vector))
+          (vector (vector-ref memo k)
+                  (build-tree (- k 1))
+                  (build-tree (- k 2)))))))
+
+
+III. 
+(define (fun-iii n tree)
+  (let ((memo (make-vector (+ n 1))))
+    (vector-set! memo 0 0)
+    (when (>= n 1)
+      (vector-set! memo 1 1))
+    (let loop ((i 2))
+      (unless (> i n)
+        (vector-set! memo i (+ (vector-ref memo (- i 1)) (vector-ref memo (- i 2))))
+        (loop (+ i 1))))
+    (let check-tree ((k n) (t tree))
+      (cond
+        ((not (and (vector? t) (= (vector-length t) 3))) #f)
+        ((<= k 1)
+          (and
+            (= (vector-ref t 0) (vector-ref memo k))
+            (vector? (vector-ref t 1)) (= (vector-length (vector-ref t 1)) 0)
+            (vector? (vector-ref t 2)) (= (vector-length (vector-ref t 2)) 0)))
+        (else
+          (and
+            (= (vector-ref t 0) (vector-ref memo k))
+            (check-tree (- k 1) (vector-ref t 1))
+            (check-tree (- k 2) (vector-ref t 2))))))))
+
+
+IV. 
+(define (fun-iv-cps n tree cc)
+  (let ((memo (make-vector (+ n 1))))
+    (vector-set! memo 0 0)
+    (when (>= n 1)
+      (vector-set! memo 1 1))
+    (let loop ((i 2))
+      (unless (> i n)
+        (vector-set! memo i (+ (vector-ref memo (- i 1)) (vector-ref memo (- i 2))))
+        (loop (+ i 1))))
+    (let check-tree ((k n) (t tree) (cont cc))
+      (cond
+        ((not (and (vector? t) (= (vector-length t) 3)))
+          (cont #f))
+        ((<= k 1)
+          (cont (and
+                (= (vector-ref t 0) (vector-ref memo k))
+                (vector? (vector-ref t 1)) (= (vector-length (vector-ref t 1)) 0)
+                (vector? (vector-ref t 2)) (= (vector-length (vector-ref t 2)) 0))))
+        (else
+         (if (not (= (vector-ref t 0) (vector-ref memo k)))
+              (cont #f)
+              (check-tree (- k 1)
+                         (vector-ref t 1)
+                         (lambda (left-result)
+                            (if (not left-result)
+                                (cont #f)
+                                (check-tree (- k 2)
+                                            (vector-ref t 2)
+                                            cont))))))))))
+
+
+V. 
+(define (fun-v n tree)
+  (let ((memo (make-vector (+ n 1))))
+    (vector-set! memo 0 0)
+    (when (>= n 1)
+      (vector-set! memo 1 1))
+    (let loop ((i 2))
+      (unless (> i n)
+        (vector-set! memo i (+ (vector-ref memo (- i 1)) (vector-ref memo (- i 2))))
+        (loop (+ i 1))))
+    (call/cc
+      (lambda (return)
+        (let check-tree ((k n) (t tree))
+          (cond
+            ((not (and (vector? t) (= (vector-length t) 3)))
+              (return #f))
+            ((<= k 1)
+              (if (and
+                    (= (vector-ref t 0) (vector-ref memo k))
+                    (vector? (vector-ref t 1)) (= (vector-length (vector-ref t 1)) 0)
+                    (vector? (vector-ref t 2)) (= (vector-length (vector-ref t 2)) 0))
+                #t
+                (return #f)))
+            (else
+              (if (not (= (vector-ref t 0) (vector-ref memo k)))
+                (return #f)
+                (and
+                  (check-tree (- k 1) (vector-ref t 1))
+                  (check-tree (- k 2) (vector-ref t 2)))))))))))
